@@ -1,0 +1,3 @@
+{
+	"cmd": ["python", "$file", "-e", "/Users/cnoviello/STM32Toolchain/projects/empty", "-c", "/Users/cnoviello/STM32Toolchain/cubemx-out/boh", "-v3", "--dryrun"]
+}
