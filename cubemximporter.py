@@ -86,7 +86,7 @@ class CubeMXImporter(object):
                     if quote:
                         listOptionValue.attrib["value"] = "&quot;%s&quot;" % v #Quote the path
                     else:
-                        listOptionValue.attrib["value"] = "%s;" % v
+                        listOptionValue.attrib["value"] = "%s" % v
                     opt.append(listOptionValue)
 
     def addAssemblerIncludes(self, includes):
@@ -291,16 +291,11 @@ class InvalidEclipseFolder(Exception):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Import a CubeMX generated project inside an existing Eclipse project generated with the GNU ARM plugin')
     
-    # parser.add_argument('integers', metavar='N', type=int, nargs='+',
-    #                    help='an integer for the accumulator')
-    parser.add_argument('-c', '--cubemx-path', type=str, action='store',
-                       help='specifies the PATH of the CubeMX project')
+    parser.add_argument('eclipse_path', metavar='eclipse_project_folder', type=str, 
+                       help='an integer for the accumulator')
 
-    parser.add_argument('-e', '--eclipse-path', type=str, action='store',
-                       help='specifies the PATH of the Eclipse project')
-
-    parser.add_argument('-s', '--stm32-family', type=str, action='store',
-                       help='specifies the STM32 family')
+    parser.add_argument('cubemx_path', metavar='cubemx_project_folder', type=str, 
+                       help='an integer for the accumulator')
 
     parser.add_argument('-v', '--verbose', type=int, action='store',
                        help='Verbose level')
