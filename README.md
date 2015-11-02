@@ -10,7 +10,6 @@ It can be easily used in this way:
 3. Launch the CubeMXImporter tool with the following command:
 ```
 $ python cubemximporter.py <path-to-eclipse-project> <path-to-cubemx-project>
-
 ```
 4. Open again the Eclipse project and do a refresh of the source tree.
 
@@ -20,5 +19,4 @@ CubeMXImporter required `lxml`. You can install it using pip:
 
 ```
 $ pip install lxml
-
 ```
