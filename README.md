@@ -8,15 +8,13 @@ It can be easily used in this way:
 2. Create a new CubeMX project for your MCU or development board.
 	2. Generate the C code from CubeMX project selecting SW4STM32 as Tool-chain.
 3. Launch the CubeMXImporter tool with the following command:
-
 ```
 $ python cubemximporter.py <path-to-eclipse-project> <path-to-cubemx-project>
 
 ```
-
 4. Open again the Eclipse project and do a refresh of the source tree.
 
-The whole procedure is better described [here]()
+The whole procedure is better described [here](http://www.carminenoviello.com/en/2015/11/02/quickly-import-stm32cubemx-project-eclipse-project/)
 
 CubeMXImporter required `lxml`. You can install it using pip:
 
