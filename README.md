@@ -15,7 +15,7 @@ $ python cubemximporter.py <path-to-eclipse-project> <path-to-cubemx-project>
 
 The whole procedure is better described [here](http://www.carminenoviello.com/en/2015/11/02/quickly-import-stm32cubemx-project-eclipse-project/)
 
-CubeMXImporter required `lxml`. You can install it using pip:
+CubeMXImporter require Python 2.7 and `lxml`. You can install it using pip:
 
 ```
 $ pip install lxml
