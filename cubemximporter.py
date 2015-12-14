@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-version = 0.1
+version = 0.2
 
 import os
 import argparse
@@ -114,6 +114,23 @@ class CubeMXImporter(object):
         """Add a list of macros to the CPP section in project settings"""
         self.__addOptionValuesToProject(macros, "ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.defs", False)
 
+    def addSourceEntries(self, entries):
+        """Add a list of directory to the source entries list in the eclipse project"""
+        sources = self.projectRoot.xpath("//sourceEntries") #Uses XPATH to retrieve the 'section'
+        for source in sources:
+            for e in entries:
+                logging.debug("Adding '%s' folder to source entries" % e)
+                entry = copy.deepcopy(source[0])
+                entry.attrib["name"] = e
+                source.append(entry)
+
+    def copyTree(self, src, dst, ignore=None):
+        """Copy 'src' directory in 'dst' folder"""
+        logging.debug("Copying folder '%s' to '%s'" % (src, dst))
+
+        if not self.dryrun:
+            shutil.copytree(src, dst, ignore)
+
     def copyTreeContent(self, src, dst):
         """Copy all files contsined in 'src' folder to 'dst' folder"""
         files = os.listdir(src)
@@ -176,6 +193,20 @@ class CubeMXImporter(object):
                 self.HAL_TYPE = re.split("([F,L]{1}[0-9]{1})", self.HAL_MCU_TYPE)[1]
                 self.logger.info("Detected MCU type: %s" % self.HAL_MCU_TYPE)
                 self.logger.info("Detected HAL type: %s" % self.HAL_TYPE)
+
+    def getAC6Includes(self):
+        root = None
+
+        for root, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
+            if ".cproject" in files:
+                root = etree.fromstring(open(os.path.join(root, ".cproject")).read())
+
+        if root is None:
+            raise InvalidSW4STM32Project("The generated CubeMX project is not for SW4STM32 tool-chain. Please, regenerate the project again.")
+
+        options = root.xpath("//option[@superClass='gnu.c.compiler.option.include.paths']")[0]
+
+        return [opt.attrib["value"] for opt in options]
 
     def importApplication(self):
         """Import generated application code inside the Eclipse project"""
@@ -249,6 +280,77 @@ class CubeMXImporter(object):
             os.unlink(os.path.join(self.eclipseprojectpath, "system/src/stm32%sxx/stm32%sxx_hal_msp_template.c" % (self.HAL_TYPE.lower(), self.HAL_TYPE.lower())))
 
         self.logger.info("Successfully imported the STCubeHAL")
+
+    def importMiddlewares(self):
+        """Import the ST HAL inside the Eclipse project"""
+
+        foundFreeRTOS = False
+        foundMiddlewares = False
+        foundFF = False
+        foundLwIP = False
+
+        for root, dir, files in os.walk(self.cubemxprojectpath):
+            if "Middlewares" in dir:
+                foundMiddlewares = True
+            if "FreeRTOS" in dir:
+                foundFreeRTOS = True
+            if "FatFs" in dir:
+                foundFF = True
+            if "LwIP" in dir:
+                foundLwIP = True
+
+        if not foundMiddlewares:
+            return
+
+        srcDir = os.path.join(self.cubemxprojectpath, "Middlewares")
+        dstDir = os.path.join(self.eclipseprojectpath, "Middlewares")
+
+        locations = ((srcDir, dstDir),)
+
+        try:
+            for loc in locations:
+                self.copyTree(loc[0], loc[1])
+        except OSError, e:
+            import errno
+            if e.errno == errno.EEXIST:
+                shutil.rmtree(dstDir)
+                return self.importMiddlewares()
+
+        #Adding Middleware library includes
+        includes = [inc.replace("../../", "") for inc in self.getAC6Includes() if "Middlewares" in inc]
+        self.addCIncludes(includes)
+        self.addCPPIncludes(includes)
+        self.addAssemblerIncludes(includes)
+        self.addSourceEntries(("Middlewares",))
+ 
+        self.logger.info("Successfully imported Middlewares libraries")
+
+        if foundLwIP:
+            ethernetif_template = os.path.join(self.eclipseprojectpath, "Middlewares/Third_Party/LwIP/src/netif/ethernetif_template.c")
+            os.unlink(ethernetif_template)
+
+        if foundFreeRTOS:
+            print "#" * 100
+            print "####",
+            print "READ CAREFULLY".center(90),
+            print "####"
+            print "#" * 100
+            print """The original CubeMX project contains the FreeRTOS middleware library. 
+This library was imported in the Eclipse project correctly, but you still need to
+configure your tool-chain 'Float ABI' and 'FPU Type' if your STM32 support hard float 
+(e.g. for a STM32F4 MCU set 'Float ABI'='FP Instructions(hard)'' and 'FPU Type'='fpv4-sp-d16'. 
+Moreover, exclude from build those MemManage files (heap_1.c, etc) not needed for your project."""
+
+        if foundFF:
+            print "#" * 100
+            print "####",
+            print "READ CAREFULLY".center(90),
+            print "####"
+            print "#" * 100
+            print """The original CubeMX project contains the FatFs middleware library. 
+This library was imported in the Eclipse project correctly, but you still need to
+exclude from build those uneeded codepage files (cc932.c, etc) not needed for your project."""
+
         
     def parseEclipseProjectFile(self):
         """Parse the Eclipse XML project file"""
@@ -321,6 +423,7 @@ if __name__ == "__main__":
     cubeImporter.importApplication()
     cubeImporter.importHAL()
     cubeImporter.importCMSIS()
+    cubeImporter.importMiddlewares()
     cubeImporter.saveEclipseProjectFile()
     # cubeImporter.addCIncludes(["../middlewares/freertos"])
     # cubeImporter.printEclipseProjectFile()
