@@ -178,9 +178,9 @@ class CubeMXImporter(object):
 
         root = None
 
-        for root, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
+        for rootdir, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
             if ".cproject" in files:
-                root = etree.fromstring(open(os.path.join(root, ".cproject")).read())
+                root = etree.fromstring(open(os.path.join(rootdir, ".cproject")).read())
 
         if root is None:
             raise InvalidSW4STM32Project("The generated CubeMX project is not for SW4STM32 tool-chain. Please, regenerate the project again.")
@@ -197,9 +197,9 @@ class CubeMXImporter(object):
     def getAC6Includes(self):
         root = None
 
-        for root, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
+        for rootdir, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
             if ".cproject" in files:
-                root = etree.fromstring(open(os.path.join(root, ".cproject")).read())
+                root = etree.fromstring(open(os.path.join(rootdir, ".cproject")).read())
 
         if root is None:
             raise InvalidSW4STM32Project("The generated CubeMX project is not for SW4STM32 tool-chain. Please, regenerate the project again.")
@@ -289,14 +289,14 @@ class CubeMXImporter(object):
         foundFF = False
         foundLwIP = False
 
-        for root, dir, files in os.walk(self.cubemxprojectpath):
-            if "Middlewares" in dir:
+        for rootdir, dirs, files in os.walk(self.cubemxprojectpath):
+            if "Middlewares" in dirs:
                 foundMiddlewares = True
-            if "FreeRTOS" in dir:
+            if "FreeRTOS" in dirs:
                 foundFreeRTOS = True
-            if "FatFs" in dir:
+            if "FatFs" in dirs:
                 foundFF = True
-            if "LwIP" in dir:
+            if "LwIP" in dirs:
                 foundLwIP = True
 
         if not foundMiddlewares:
