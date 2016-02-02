@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+from __future__ import print_function
+
 version = 0.2
 
 import os
@@ -180,7 +182,7 @@ class CubeMXImporter(object):
 
         for rootdir, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
             if ".cproject" in files:
-                root = etree.fromstring(open(os.path.join(rootdir, ".cproject")).read())
+                root = etree.fromstring(open(os.path.join(rootdir, ".cproject")).read().encode('UTF-8'))
 
         if root is None:
             raise InvalidSW4STM32Project("The generated CubeMX project is not for SW4STM32 tool-chain. Please, regenerate the project again.")
@@ -190,7 +192,7 @@ class CubeMXImporter(object):
         for opt in options:
             if "STM32" in opt.attrib["value"]:
                 self.HAL_MCU_TYPE = opt.attrib["value"]
-                self.HAL_TYPE = re.split("([F,L]{1}[0-9]{1})", self.HAL_MCU_TYPE)[1]
+                self.HAL_TYPE = re.search("([FL][0-9])", self.HAL_MCU_TYPE).group(1)
                 self.logger.info("Detected MCU type: %s" % self.HAL_MCU_TYPE)
                 self.logger.info("Detected HAL type: %s" % self.HAL_TYPE)
 
@@ -199,7 +201,7 @@ class CubeMXImporter(object):
 
         for rootdir, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
             if ".cproject" in files:
-                root = etree.fromstring(open(os.path.join(rootdir, ".cproject")).read())
+                root = etree.fromstring(open(os.path.join(rootdir, ".cproject")).read().encode('UTF-8'))
 
         if root is None:
             raise InvalidSW4STM32Project("The generated CubeMX project is not for SW4STM32 tool-chain. Please, regenerate the project again.")
@@ -310,7 +312,7 @@ class CubeMXImporter(object):
         try:
             for loc in locations:
                 self.copyTree(loc[0], loc[1])
-        except OSError, e:
+        except OSError as e:
             import errno
             if e.errno == errno.EEXIST:
                 shutil.rmtree(dstDir)
@@ -330,32 +332,32 @@ class CubeMXImporter(object):
             os.unlink(ethernetif_template)
 
         if foundFreeRTOS:
-            print "#" * 100
-            print "####",
-            print "READ CAREFULLY".center(90),
-            print "####"
-            print "#" * 100
-            print """The original CubeMX project contains the FreeRTOS middleware library. 
+            print("#" * 100)
+            print("####", end="")
+            print("READ CAREFULLY".center(92), end="")
+            print("####")
+            print("#" * 100)
+            print("""The original CubeMX project contains the FreeRTOS middleware library. 
 This library was imported in the Eclipse project correctly, but you still need to
 configure your tool-chain 'Float ABI' and 'FPU Type' if your STM32 support hard float 
 (e.g. for a STM32F4 MCU set 'Float ABI'='FP Instructions(hard)'' and 'FPU Type'='fpv4-sp-d16'. 
-Moreover, exclude from build those MemManage files (heap_1.c, etc) not needed for your project."""
+Moreover, exclude from build those MemManage files (heap_1.c, etc) not needed for your project.""")
 
         if foundFF:
-            print "#" * 100
-            print "####",
-            print "READ CAREFULLY".center(90),
-            print "####"
-            print "#" * 100
-            print """The original CubeMX project contains the FatFs middleware library. 
+            print("#" * 100)
+            print("####", end="")
+            print("READ CAREFULLY".center(92), end="")
+            print("####")
+            print("#" * 100)
+            print("""The original CubeMX project contains the FatFs middleware library. 
 This library was imported in the Eclipse project correctly, but you still need to
-exclude from build those uneeded codepage files (cc932.c, etc) not needed for your project."""
+exclude from build those uneeded codepage files (cc932.c, etc) not needed for your project.""")
 
         
     def parseEclipseProjectFile(self):
         """Parse the Eclipse XML project file"""
         projectFile = os.path.join(self.eclipseprojectpath, ".cproject")
-        self.projectRoot = etree.fromstring(open(projectFile).read())
+        self.projectRoot = etree.fromstring(open(projectFile).read().encode('UTF-8'))
         
     def printEclipseProjectFile(self):
         """Do a pretty print of Eclipse project DOM"""
@@ -364,12 +366,12 @@ exclude from build those uneeded codepage files (cc932.c, etc) not needed for yo
         #However, Eclipse expects that the " charachter is espressed as &quot; So,
         #here we replace the "&amp;" with "&" in the final XML file
         xmlout = xmlout.replace("&amp;", "&")
-        print xmlout
+        print(xmlout)
 
     def saveEclipseProjectFile(self):
         """Save the XML DOM of Eclipse project inside the .cproject file"""
 
-        xmlout = '<?xml version="1.0" encoding="UTF-8" standalone="no"?><?fileVersion 4.0.0?>' + etree.tostring(self.projectRoot)
+        xmlout = '<?xml version="1.0" encoding="UTF-8" standalone="no"?><?fileVersion 4.0.0?>' + etree.tostring(self.projectRoot).decode('UTF-8')
         #lxml correctly escapes the "&" to "&amp;", as specified by the XML standard.
         #However, Eclipse expects that the " charachter is espressed as &quot; So,
         #here we replace the "&amp;" with "&" in the final XML file
