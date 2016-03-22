@@ -46,9 +46,24 @@ class CubeMXImporter(object):
         """Set the path of CubeMX generated project folder"""
 
         if os.path.exists(os.path.join(path, ".mxproject")): 
-            if os.path.exists(os.path.join(path, "SW4STM32")): 
+            if os.path.exists(os.path.join(path, "SW4STM32")):  #For CubeMX < 4.14
                 self.cubemxprojectpath = path
+                self.sw4stm32projectpath = os.path.join(path, "SW4STM32")
                 self.detectHALInfo()
+            elif os.path.exists(os.path.join(path, ".cproject")):
+                #Recent releases of CubeMX (from 4.14 and higher) allow to generate the
+                #SW4STM32 project in the root folder. This means that project files are 
+                #stored in the root of the CubeMX project, but this is the 
+                #same behavior for TrueSTUDIO project. So we need to check if the project
+                #is generated for the SW4STM32 toolchain by playing with the content of .cproject file
+
+                if open(os.path.join(path, ".cproject")).read().find("ac6") < 0: #It is not an AC6 project
+                    raise InvalidSW4STM32Project("The generated CubeMX project is not for SW4STM32 tool-chain. Please, regenerate the project again.")
+                else:
+                    self.cubemxprojectpath = path
+                    self.sw4stm32projectpath = path
+                    self.detectHALInfo()
+
             else:
                 raise InvalidSW4STM32Project("The generated CubeMX project is not for SW4STM32 tool-chain. Please, regenerate the project again.")
         else:
@@ -180,7 +195,7 @@ class CubeMXImporter(object):
 
         root = None
 
-        for rootdir, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
+        for rootdir, dirs, files in os.walk(self.sw4stm32projectpath):
             if ".cproject" in files:
                 root = etree.fromstring(open(os.path.join(rootdir, ".cproject")).read().encode('UTF-8'))
 
@@ -199,7 +214,7 @@ class CubeMXImporter(object):
     def getAC6Includes(self):
         root = None
 
-        for rootdir, dirs, files in os.walk(os.path.join(self.cubemxprojectpath, "SW4STM32")):
+        for rootdir, dirs, files in os.walk(self.sw4stm32projectpath):
             if ".cproject" in files:
                 root = etree.fromstring(open(os.path.join(rootdir, ".cproject")).read().encode('UTF-8'))
 
@@ -279,7 +294,12 @@ class CubeMXImporter(object):
         self.addCPPMacros((self.HAL_MCU_TYPE,))
 
         if not self.dryrun:
-            os.unlink(os.path.join(self.eclipseprojectpath, "system/src/stm32%sxx/stm32%sxx_hal_msp_template.c" % (self.HAL_TYPE.lower(), self.HAL_TYPE.lower())))
+            try:
+                #Try to delete templete files, if generated
+                os.unlink(os.path.join(self.eclipseprojectpath, "system/src/stm32%sxx/stm32%sxx_hal_msp_template.c" % (self.HAL_TYPE.lower(), self.HAL_TYPE.lower())))
+                os.unlink(os.path.join(self.eclipseprojectpath, "system/src/stm32%sxx/stm32%sxx_hal_timebase_tim_template.c" % (self.HAL_TYPE.lower(), self.HAL_TYPE.lower())))
+            except OSError:
+                pass                
 
         self.logger.info("Successfully imported the STCubeHAL")
 
@@ -320,6 +340,7 @@ class CubeMXImporter(object):
 
         #Adding Middleware library includes
         includes = [inc.replace("../../", "") for inc in self.getAC6Includes() if "Middlewares" in inc]
+
         self.addCIncludes(includes)
         self.addCPPIncludes(includes)
         self.addAssemblerIncludes(includes)
@@ -328,8 +349,11 @@ class CubeMXImporter(object):
         self.logger.info("Successfully imported Middlewares libraries")
 
         if foundLwIP:
-            ethernetif_template = os.path.join(self.eclipseprojectpath, "Middlewares/Third_Party/LwIP/src/netif/ethernetif_template.c")
-            os.unlink(ethernetif_template)
+            try:
+                ethernetif_template = os.path.join(self.eclipseprojectpath, "Middlewares/Third_Party/LwIP/src/netif/ethernetif_template.c")
+                os.unlink(ethernetif_template)
+            except OSError:  #CubeMX 4.14 no longer generates this file
+                pass
 
         if foundFreeRTOS:
             print("#" * 100)
@@ -392,6 +416,9 @@ class InvalidCubeMXFolder(Exception):
 class InvalidEclipseFolder(Exception):
     pass
 
+class InvalidSW4STM32Project(Exception):
+    pass
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Import a CubeMX generated project inside an existing Eclipse project generated with the GNU ARM plugin')
     
