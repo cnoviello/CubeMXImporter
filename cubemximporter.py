@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2015 Carmine Noviello
+# Copyright (c) 2015/2016 Carmine Noviello
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,8 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-#
-# modified by Fabien to get the new gnu arm stm32 project templates to also work with the script
 
 from __future__ import print_function
 
@@ -413,6 +411,24 @@ Moreover, exclude from build those MemManage files (heap_1.c, etc) not needed fo
 This library was imported in the Eclipse project correctly, but you still need to
 exclude from build those uneeded codepage files (cc932.c, etc) not needed for your project.""")
 
+    def patchMEM_LDFile(self):
+        """ Fix the FLASH starting address if set to 0x00000000 """
+
+        memLD_File = os.path.join(self.eclipseprojectpath, "ldscripts", "mem.ld")
+        
+        fcontent = open(memLD_File, "r+").readlines()
+        changed = False
+        for i in range(len(fcontent)):
+             if re.search("FLASH .([r,x])", fcontent[i]):
+                 fcontent[i] = fcontent[i].replace("00000000", "08000000")
+                 changed = True
+
+        if changed and not self.dryrun:
+            open(memLD_File, "w+").writelines(fcontent)
+
+        if changed:
+            self.logger.info("Changed the FLASH region starting address from 0x00000000 to 0x08000000")
+
     def parseEclipseProjectFile(self):
         """Parse the Eclipse XML project file"""
         projectFile = os.path.join(self.eclipseprojectpath, ".cproject")
@@ -509,5 +525,6 @@ if __name__ == "__main__":
     cubeImporter.importCMSIS()
     cubeImporter.importMiddlewares()
     cubeImporter.saveEclipseProjectFile()
+    cubeImporter.patchMEM_LDFile()
     # cubeImporter.addCIncludes(["../middlewares/freertos"])
     # cubeImporter.printEclipseProjectFile()
