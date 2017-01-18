@@ -303,6 +303,12 @@ class CubeMXImporter(object):
                                    "Drivers/CMSIS/Device/ST/STM32%sxx/Source/Templates/gcc/startup_%s.s" % (
                                        self.HAL_TYPE, self.HAL_MCU_TYPE.lower()))
 
+        if not os.path.exists(startupFile):
+            #CubeMX 4.19 moved the system_stm32XXxx.s file inside the startup folder
+            cubeMXVersion = 419
+            startupFile = os.path.join(self.cubemxprojectpath,
+                                  "startup/startup_%s.s" % self.HAL_MCU_TYPE.lower())
+
         locations = ((systemFile, dstSourceDir), (startupFile, dstSourceDir))
 
         if not self.dryrun:
