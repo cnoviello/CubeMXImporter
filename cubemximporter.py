@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Copyright (c) 2015/2016 Carmine Noviello
 #
@@ -22,7 +22,7 @@
 
 from __future__ import print_function
 
-version = '0.2.2' # using semantic versioning 2.0 model, denote a patch change
+version = '0.2.3' # using semantic versioning 2.0 model, denote a patch change
 
 import os
 import argparse
